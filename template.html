@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Chat</title>
+	<style type="text/css">
+		body {
+			color: #333;
+			font-family: Helvetica, Arial;
+		}
+		.container {
+			margin: 40px auto 0;
+			width: 250px;
+			padding: 10px;
+			border: 1px #B1B1B1 solid;
+			border-radius: 2px;
+		}
+		.my-btn {
+			-moz-box-shadow:inset 0px 1px 0px 0px #cae3fc;
+			-webkit-box-shadow:inset 0px 1px 0px 0px #cae3fc;
+			box-shadow:inset 0px 1px 0px 0px #cae3fc;
+			background-color:#79bbff;
+			-moz-border-radius:4px;
+			-webkit-border-radius:4px;
+			border-radius:4px;
+			border:1px solid #469df5;
+			display:inline-block;
+			color:#ffffff;
+			font-family:arial;
+			font-size:15px;
+			font-weight:bold;
+			padding:6px 23px;
+			text-decoration:none;
+			text-shadow:1px 1px 0px #287ace;
+		}.my-btn:hover {
+			background-color:#4197ee;
+		}.my-btn:active {
+			position:relative;
+			top:1px;
+		}
+
+		#username {
+			margin: 0;
+			border-bottom: 1px #BDBDBD solid;
+			color: #575757;
+		}
+
+		#chat {
+			height: 250px;
+			overflow: auto;
+			padding: 7px;
+			margin-bottom: 10px;
+			font-size: 13px;
+		}
+
+		.self {
+			color: #469732;
+		}
+
+		#chatbox {
+			width: 243px;
+			height: 60px;
+			border: 1px #A7A7A7 solid;
+			resize: none;
+		}
+
+		.notification {
+			display: none;
+			position: absolute;
+			background-color: #45A7CE;
+			color: #FFF;
+			padding: 11px;
+			width: 228px;
+			font-size: 12px;
+			border-bottom: 2px #2F7CAF solid;
+		}
+	</style>
+	<script src="http://192.168.0.28:1337/assets/js/jquery.js"></script>
+	<script src="http://192.168.0.28:1338/socket.io/socket.io.js"></script>
+</head>
+<body>
+	<div class="container">
+		<h2 id="username"></h2>
+		<div class="notification"></div>
+		<div id="chat"></div>
+		<textarea type="text" id="chatbox" placeholder="write your message here"></textarea>
+		<br>
+		<a href="#" class="my-btn" id="sendchat">Send</a>
+	</div>
+	<script>
+	var socket = io.connect('http://192.168.0.28:1338');
+	var chatContainer = document.getElementById('chat');
+	var button = document.getElementById('sendchat');
+
+	var username = prompt('Pick a username');
+	socket.emit("set nickname", username);
+	$('#username').html('Welcome ' + username);
+
+	var sendChat = function (value) {
+		var value = document.getElementById('chatbox').value;
+		socket.emit("msg", value);
+		document.getElementById('chatbox').value = '';
+		return false;
+	};
+
+	$('#chatbox').bind('keyup', function (event) {
+		var code = (event.keyCode ? event.keyCode : event.which);
+		var $dis = $(this);
+		if (code == 13) {
+			sendChat();
+		}
+	});
+
+	var notif = (function () {
+		var timeOut = 0;
+		var $notif = $('.notification');
+		return function (text) {
+			clearTimeout(timeOut);
+			$notif.text(text);
+			$notif.slideDown('slow', function () {
+				timeOut = setTimeout(function () {
+					$notif.slideUp();
+				}, 2000);
+			});
+		};
+	})();
+
+	button.onclick = function (e) {
+		return sendChat();
+	};
+
+	socket.on('chat', function (chat) {
+		var p = document.createElement("p");
+		if(chat.username === username) {
+			p.className = 'self';
+		}
+		p.innerHTML = '<strong>' + chat.username + ':</strong> ' + chat.text;
+		chatContainer.appendChild(p);
+	});
+
+	socket.on('joined', function (username) {
+		notif(username + ' entered the room.');
+	});
+
+	socket.on('leaved', function (username) {
+		notif(username + ' leaved the room.');
+	});
+
+	</script>
+</body>
+</html>
